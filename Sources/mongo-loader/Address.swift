@@ -8,13 +8,17 @@
 import Foundation
 
 struct Address: Encodable, Decodable {
-    let _id: Id
-    let address: String
-    let address2: String?
-    let city: String
-    let state: String?
-    let postalCode: String
-    let country: String?
-    let eMail: String?
-    let homePhone: String?
+    struct Value: Encodable, Decodable {
+        let address: String
+        let address2: String?
+        let city: String
+        let state: String?
+        let postalCode: String
+        let country: String?
+        let eMail: String?
+        let homePhone: String?
+    }
+    
+    let id: Id
+    let value: Value
 }

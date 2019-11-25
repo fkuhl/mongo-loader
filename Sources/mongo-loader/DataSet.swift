@@ -7,6 +7,8 @@
 
 import Foundation
 
+typealias Id = String
+
 struct DataSet: Encodable, Decodable {
     let members: [Member]
     let households: [Household]
