@@ -75,41 +75,41 @@ enum MaritalStatus: String, Encodable, Decodable {
     case DIVORCED
 }
 
-struct Member: Encodable, Decodable {
-    struct Value: Encodable, Decodable {
-        let familyName: String
-        let givenName: String
-        let middleName: String?
-        let previousFamilyName: String?
-        let nameSuffix: String?
-        let title: String?
-        let nickName: String?
-        let sex: Sex
-        let dateOfBirth: Date?
-        let placeOfBirth: String?
-        let status: MemberStatus
-        let resident: Bool
-        let exDirectory: Bool
-        let household: Id
-        let tempAddress: Id?
-        let transactions: [Transaction]
-        let maritalStatus: MaritalStatus
-        let spouse: String?
-        let dateOfMarriage: Date?
-        let divorce: String?
-        let father: Id?
-        let mother: Id?
-        let eMail: String?
-        let workEMail: String?
-        let mobilePhone: String?
-        let workPhone: String?
-        let education: String?
-        let employer: String?
-        let baptism: String?
-        let services: [Service]
-        let dateLastChanged: Date?
-    }
-    
+struct Member: DataType {
     let id: Id
-    let value: Value
+    let value: MemberValue
+}
+
+struct MemberValue: ValueType {
+    let familyName: String
+    let givenName: String
+    let middleName: String?
+    let previousFamilyName: String?
+    let nameSuffix: String?
+    let title: String?
+    let nickName: String?
+    let sex: Sex
+    let dateOfBirth: Date?
+    let placeOfBirth: String?
+    let status: MemberStatus
+    let resident: Bool
+    let exDirectory: Bool
+    var household: Id
+    var tempAddress: Id?
+    let transactions: [Transaction]
+    let maritalStatus: MaritalStatus
+    let spouse: String?
+    let dateOfMarriage: Date?
+    let divorce: String?
+    var father: Id?
+    var mother: Id?
+    let eMail: String?
+    let workEMail: String?
+    let mobilePhone: String?
+    let workPhone: String?
+    let education: String?
+    let employer: String?
+    let baptism: String?
+    let services: [Service]
+    let dateLastChanged: Date?
 }

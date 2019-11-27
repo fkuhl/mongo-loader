@@ -7,14 +7,14 @@
 
 import Foundation
 
-struct Household: Encodable, Decodable {
-    struct Value: Encodable, Decodable {
-        let head: Id? //this would have to be an error
-        let spouse: Id?
-        let others: [Id]
-        let address: Id
-    }
-    
+struct Household: DataType {
     let id: Id
-    let value: Value
+    let value: HouseholdValue
+}
+
+struct HouseholdValue: ValueType {
+    var head: Id? //this would have to be an error
+    var spouse: Id?
+    var others: [Id]
+    var address: Id
 }
