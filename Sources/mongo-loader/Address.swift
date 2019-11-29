@@ -8,17 +8,17 @@
 import Foundation
 
 struct Address: DataType {
-    let id: Id
-    let value: AddressValue
+    var id: Id
+    var value: AddressValue
 }
 
 struct AddressValue: ValueType {
-    let address: String
-    let address2: String?
-    let city: String
-    let state: String?
-    let postalCode: String
-    let country: String?
-    let eMail: String?
-    let homePhone: String?
+    var address: String
+    var address2: String?
+    var city: String
+    var state: String?
+    var postalCode: String
+    var country: String?
+    var eMail: String?
+    var homePhone: String?
 }

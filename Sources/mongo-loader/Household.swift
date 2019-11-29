@@ -8,8 +8,8 @@
 import Foundation
 
 struct Household: DataType {
-    let id: Id
-    let value: HouseholdValue
+    var id: Id
+    var value: HouseholdValue
 }
 
 struct HouseholdValue: ValueType {

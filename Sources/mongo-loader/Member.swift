@@ -22,12 +22,12 @@ enum TransactionType: String, Encodable, Decodable {
 }
 
 struct Transaction: Encodable, Decodable {
-    let index: Id
-    let date: Date?
-    let type: TransactionType
-    let authority: String?
-    let church: String?
-    let comment: String?
+    var index: Id
+    var date: Date?
+    var type: TransactionType
+    var authority: String?
+    var church: String?
+    var comment: String?
 }
 
 enum ServiceType: String, Encodable, Decodable {
@@ -44,11 +44,11 @@ enum ServiceType: String, Encodable, Decodable {
 }
 
 struct Service: Encodable, Decodable {
-    let index: Id
-    let date: Date?
-    let type: ServiceType
-    let place: String?
-    let comment: String?
+    var index: Id
+    var date: Date?
+    var type: ServiceType
+    var place: String?
+    var comment: String?
 }
 
 enum Sex: String, Encodable, Decodable {
@@ -76,40 +76,40 @@ enum MaritalStatus: String, Encodable, Decodable {
 }
 
 struct Member: DataType {
-    let id: Id
-    let value: MemberValue
+    var id: Id
+    var value: MemberValue
 }
 
 struct MemberValue: ValueType {
-    let familyName: String
-    let givenName: String
-    let middleName: String?
-    let previousFamilyName: String?
-    let nameSuffix: String?
-    let title: String?
-    let nickName: String?
-    let sex: Sex
-    let dateOfBirth: Date?
-    let placeOfBirth: String?
-    let status: MemberStatus
-    let resident: Bool
-    let exDirectory: Bool
+    var familyName: String
+    var givenName: String
+    var middleName: String?
+    var previousFamilyName: String?
+    var nameSuffix: String?
+    var title: String?
+    var nickName: String?
+    var sex: Sex
+    var dateOfBirth: Date?
+    var placeOfBirth: String?
+    var status: MemberStatus
+    var resident: Bool
+    var exDirectory: Bool
     var household: Id
     var tempAddress: Id?
-    let transactions: [Transaction]
-    let maritalStatus: MaritalStatus
-    let spouse: String?
-    let dateOfMarriage: Date?
-    let divorce: String?
+    var transactions: [Transaction]
+    var maritalStatus: MaritalStatus
+    var spouse: String?
+    var dateOfMarriage: Date?
+    var divorce: String?
     var father: Id?
     var mother: Id?
-    let eMail: String?
-    let workEMail: String?
-    let mobilePhone: String?
-    let workPhone: String?
-    let education: String?
-    let employer: String?
-    let baptism: String?
-    let services: [Service]
-    let dateLastChanged: Date?
+    var eMail: String?
+    var workEMail: String?
+    var mobilePhone: String?
+    var workPhone: String?
+    var education: String?
+    var employer: String?
+    var baptism: String?
+    var services: [Service]
+    var dateLastChanged: Date?
 }
