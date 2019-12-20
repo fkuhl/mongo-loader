@@ -40,11 +40,13 @@ class MongoProxy {
             let document = try Document(fromJSON: dataValue.asJSONData())
             //NSLog("about to insert")
             if let result = try collection.insertOne(document) {
-                //For insertedId, MongoSwift returns a BSONValue rather than ObjectId,
-                //so must convert to String sketchily
-                let idAsString = "\(result.insertedId)"
-                //NSLog("insert returned id \(result.insertedId) of type \(result.insertedId.bsonType)")
-                return idAsString
+                let idAsBson = result.insertedId
+                guard idAsBson.type == BSONType.objectId else {
+                    throw MongoProxyError.invalidId("returned id of unexpected type \(idAsBson.type)")
+                }
+                let idAsObjectId = idAsBson.objectIdValue
+                //NSLog("insert returned id \(idAsObjectId?.hex ?? "nada") of type \(idAsBson.type)")
+                return idAsObjectId?.hex
             }
             NSLog("add returned nil")
             return nil
@@ -60,7 +62,7 @@ class MongoProxy {
             throw MongoProxyError.invalidId(id)
         }
         do {
-            let filter: Document = ["_id": idValue]
+            let filter: Document = ["_id": BSON.objectId(idValue)]
             let documentToUpdateTo = try Document(fromJSON: newValue.asJSONData())
             //NSLog("about to update \(id)")
             let rawResult = try collection.replaceOne(
