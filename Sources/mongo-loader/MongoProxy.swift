@@ -7,6 +7,7 @@
 
 import Foundation
 import MongoSwift
+import PMDataTypes
 
 class MongoProxy {
     private let client: MongoClient
