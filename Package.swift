@@ -13,7 +13,7 @@ let package = Package(
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "mongo-loader",
-            dependencies: ["MongoSwift"]),
+            dependencies: ["MongoSwift", "PMDataTypes"]),
         .testTarget(
             name: "mongo-loaderTests",
             dependencies: ["mongo-loader"]),

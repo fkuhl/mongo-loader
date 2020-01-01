@@ -34,8 +34,8 @@ func updateMembers(globals: Globals) throws {
             exit(1)
         }
         var value = $0.value
-        if let householdMongoIndex = globals.householdIndexes[value.household] {
-            value.household = householdMongoIndex
+        if let householdIndex = value.household, let householdMongoIndex = globals.householdIndexes[householdIndex] {
+            value.household = householdMongoIndex //if nil, leave it nil
         }
         if let tempAddress = value.tempAddress {
             if let tempAddressMongoIndex = globals.addressIndexes[tempAddress] {
@@ -74,17 +74,15 @@ func updateHouseholds(globals: Globals) throws {
             exit(1)
         }
         var value = $0.value
-        if let head = value.head {
-            if let headMongoIndex = globals.memberIndexes[head] {
-                value.head = headMongoIndex
-            }
+        if let headMongoIndex = globals.memberIndexes[value.head] {
+            value.head = headMongoIndex
         }
         if let spouse = value.spouse {
             if let spouseMongoIndex = globals.memberIndexes[spouse] {
                 value.spouse = spouseMongoIndex
             }
         }
-        if let addressMongoIndex = globals.addressIndexes[value.address] {
+        if let address = value.address, let addressMongoIndex = globals.addressIndexes[address] {
             value.address = addressMongoIndex
         }
         value.others = value.others.map {
