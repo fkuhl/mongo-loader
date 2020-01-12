@@ -34,8 +34,12 @@ func updateMembers(globals: Globals) throws {
             exit(1)
         }
         var value = $0.value
-        if let householdIndex = value.household, let householdMongoIndex = globals.householdIndexes[householdIndex] {
-            value.household = householdMongoIndex //if nil, leave it nil
+        if let householdIndex = value.household {
+            if let householdMongoIndex = globals.householdIndexes[householdIndex] {
+                value.household = householdMongoIndex
+            }
+        } else {
+            NSLog("Nil household for \(value.familyName), \(value.givenName)")
         }
         if let tempAddress = value.tempAddress {
             if let tempAddressMongoIndex = globals.addressIndexes[tempAddress] {
@@ -51,6 +55,51 @@ func updateMembers(globals: Globals) throws {
             if let motherMongoIndex = globals.memberIndexes[mother] {
                 value.mother = motherMongoIndex
             }
+        }
+        if let middleName = value.middleName {
+            if middleName.isEmpty { value.middleName = nil }
+        }
+        if let prev = value.previousFamilyName {
+            if prev.isEmpty { value.previousFamilyName = nil }
+        }
+        if let suff = value.nameSuffix {
+            if suff.isEmpty { value.nameSuffix = nil }
+        }
+        if let title = value.title {
+            if title.isEmpty { value.title = nil }
+        }
+        if let nick = value.nickName {
+            if nick.isEmpty { value.nickName = nil }
+        }
+        if let place = value.placeOfBirth {
+            if place.isEmpty { value.placeOfBirth = nil }
+        }
+        if let spouse = value.spouse {
+            if spouse.isEmpty { value.spouse = nil }
+        }
+        if let div = value.divorce {
+            if div.isEmpty { value.divorce = nil }
+        }
+        if let em = value.eMail {
+            if em.isEmpty { value.eMail = nil }
+        }
+        if let wo = value.workEMail {
+            if wo.isEmpty { value.workEMail = nil }
+        }
+        if let mob = value.mobilePhone {
+            if mob.isEmpty { value.mobilePhone = nil }
+        }
+        if let wo = value.workPhone {
+            if wo.isEmpty { value.workPhone = nil }
+        }
+        if let ed = value.education {
+            if ed.isEmpty { value.education = nil }
+        }
+        if let em = value.employer {
+            if em.isEmpty { value.employer = nil }
+        }
+        if let bap = value.baptism {
+            if bap.isEmpty { value.baptism = nil }
         }
         if try proxy.replace(id: mongoIndex, newValue: value) {
             NSLog("updated member \(mongoIndex)")
