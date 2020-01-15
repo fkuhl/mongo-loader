@@ -29,7 +29,7 @@ func store<D: DataType>(data:[D],
         let edited = editor($0.value)
         if let mongoId = try proxy.add(dataValue: edited) {
             mongoIndexByInputIndex[$0.id] = mongoId
-            editedData.append(D(id: mongoId, value: edited))
+            editedData.append(D(id: $0.id, value: edited))
         }
     }
     return (mongoIndexByInputIndex, editedData)
@@ -157,8 +157,18 @@ func updateMembers(globals: Globals) throws {
                 value.mother = motherMongoIndex
             }
         }
+        value.transactions = value.transactions.map {
+            var transaction = $0
+            transaction.index = mongoIndex //the (somewhat redundant) index is the member this belongs to
+            return transaction
+        }
+        value.services = value.services.map {
+            var service = $0
+            service.index = mongoIndex //redundant ditto
+            return service
+        }
         if try proxy.replace(id: mongoIndex, newValue: value) {
-            NSLog("updated member \(mongoIndex)")
+            NSLog("updated member, old ID \($0.id), new ID \(mongoIndex)")
             if seq % 50 == 0 {
                 let valRep = try jsonEncoder.encode(value)
                 print(String(data: valRep, encoding: .utf8)!)
@@ -212,7 +222,8 @@ func editHousehold(_ orig: HouseholdValue) -> HouseholdValue {
     if let spouse = value.spouse {
         value.spouse = stringify(spouse)
     }
-    value.others = value.others.map {
+    value.others = value.others.compactMap {
+        if $0.isEmpty { return nil }
         return stringify($0)
     }
     if let address = value.address {
