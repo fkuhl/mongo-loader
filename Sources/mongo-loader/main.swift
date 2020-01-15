@@ -8,8 +8,16 @@ struct Globals {
     var addressIndexes: [Id: Id]
 }
 
-func store<D: DataType>(data:[D], inCollection collectionName: CollectionName) throws -> [Id: Id] {
+/** Force ID to be seen as string, despite being numeric. */
+func stringify(_ id: String) -> String {
+    return "ID" + id
+}
+
+func store<D: DataType>(data:[D],
+                        inCollection collectionName: CollectionName,
+                        editor: (D.V) -> (D.V)) throws -> ([Id: Id], [D]) {
     var mongoIndexByInputIndex = [Id: Id]()
+    var editedData = [D]()
     let proxy = MongoProxy(collectionName: collectionName)
     do {
         try proxy.drop()
@@ -18,11 +26,104 @@ func store<D: DataType>(data:[D], inCollection collectionName: CollectionName) t
         NSLog("drop failed on collection \(collectionName), err: \(error)")
     }
     try data.forEach {
-        if let mongoId = try proxy.add(dataValue: $0.value) {
+        let edited = editor($0.value)
+        if let mongoId = try proxy.add(dataValue: edited) {
             mongoIndexByInputIndex[$0.id] = mongoId
+            editedData.append(D(id: mongoId, value: edited))
         }
     }
-    return mongoIndexByInputIndex
+    return (mongoIndexByInputIndex, editedData)
+}
+
+func editMember(_ orig: MemberValue) -> MemberValue {
+    var value = orig
+    if let householdIndex = value.household {
+        value.household = stringify(householdIndex)
+    }
+    if let tempAddress = value.tempAddress {
+        value.tempAddress = stringify(tempAddress)
+    }
+    if let father = value.father {
+        value.father = stringify(father)
+    }
+    if let mother = value.mother {
+        value.mother = stringify(mother)
+    }
+    if let middleName = value.middleName {
+        if middleName.isEmpty { value.middleName = nil }
+    }
+    if let prev = value.previousFamilyName {
+        if prev.isEmpty { value.previousFamilyName = nil }
+    }
+    if let suff = value.nameSuffix {
+        if suff.isEmpty { value.nameSuffix = nil }
+    }
+    if let title = value.title {
+        if title.isEmpty { value.title = nil }
+    }
+    if let nick = value.nickName {
+        if nick.isEmpty { value.nickName = nil }
+    }
+    if let place = value.placeOfBirth {
+        if place.isEmpty { value.placeOfBirth = nil }
+    }
+    if let spouse = value.spouse {
+        if spouse.isEmpty { value.spouse = nil }
+    }
+    if let div = value.divorce {
+        if div.isEmpty { value.divorce = nil }
+    }
+    if let em = value.eMail {
+        if em.isEmpty { value.eMail = nil }
+    }
+    if let wo = value.workEMail {
+        if wo.isEmpty { value.workEMail = nil }
+    }
+    if let mob = value.mobilePhone {
+        if mob.isEmpty { value.mobilePhone = nil }
+    }
+    if let wo = value.workPhone {
+        if wo.isEmpty { value.workPhone = nil }
+    }
+    if let ed = value.education {
+        if ed.isEmpty { value.education = nil }
+    }
+    if let em = value.employer {
+        if em.isEmpty { value.employer = nil }
+    }
+    if let bap = value.baptism {
+        if bap.isEmpty { value.baptism = nil }
+    }
+    value.transactions = value.transactions.map { editTransaction($0) }
+    value.services = value.services.map { editService($0) }
+    return value
+}
+
+func editTransaction(_ orig: Transaction) -> Transaction {
+    var value = orig
+    value.index = stringify(value.index)
+    if let authority = value.authority {
+        if authority.isEmpty { value.authority = nil }
+    }
+    if let church = value.church {
+        if church.isEmpty { value.church = nil }
+    }
+    if let comment = value.comment {
+        if comment.isEmpty { value.comment = nil }
+    }
+    return value
+}
+
+func editService(_ orig: Service) -> Service {
+    var value = orig
+    value.index = stringify(value.index)
+    if let place = value.place {
+        if place.isEmpty { value.place = nil }
+    }
+    if let comment = value.comment {
+        if comment.isEmpty { value.comment = nil }
+    }
+    return value
 }
 
 func updateMembers(globals: Globals) throws {
@@ -55,51 +156,6 @@ func updateMembers(globals: Globals) throws {
             if let motherMongoIndex = globals.memberIndexes[mother] {
                 value.mother = motherMongoIndex
             }
-        }
-        if let middleName = value.middleName {
-            if middleName.isEmpty { value.middleName = nil }
-        }
-        if let prev = value.previousFamilyName {
-            if prev.isEmpty { value.previousFamilyName = nil }
-        }
-        if let suff = value.nameSuffix {
-            if suff.isEmpty { value.nameSuffix = nil }
-        }
-        if let title = value.title {
-            if title.isEmpty { value.title = nil }
-        }
-        if let nick = value.nickName {
-            if nick.isEmpty { value.nickName = nil }
-        }
-        if let place = value.placeOfBirth {
-            if place.isEmpty { value.placeOfBirth = nil }
-        }
-        if let spouse = value.spouse {
-            if spouse.isEmpty { value.spouse = nil }
-        }
-        if let div = value.divorce {
-            if div.isEmpty { value.divorce = nil }
-        }
-        if let em = value.eMail {
-            if em.isEmpty { value.eMail = nil }
-        }
-        if let wo = value.workEMail {
-            if wo.isEmpty { value.workEMail = nil }
-        }
-        if let mob = value.mobilePhone {
-            if mob.isEmpty { value.mobilePhone = nil }
-        }
-        if let wo = value.workPhone {
-            if wo.isEmpty { value.workPhone = nil }
-        }
-        if let ed = value.education {
-            if ed.isEmpty { value.education = nil }
-        }
-        if let em = value.employer {
-            if em.isEmpty { value.employer = nil }
-        }
-        if let bap = value.baptism {
-            if bap.isEmpty { value.baptism = nil }
         }
         if try proxy.replace(id: mongoIndex, newValue: value) {
             NSLog("updated member \(mongoIndex)")
@@ -150,6 +206,41 @@ func updateHouseholds(globals: Globals) throws {
     }
 }
 
+func editHousehold(_ orig: HouseholdValue) -> HouseholdValue {
+    var value = orig
+    value.head = stringify(value.head)
+    if let spouse = value.spouse {
+        value.spouse = stringify(spouse)
+    }
+    value.others = value.others.map {
+        return stringify($0)
+    }
+    if let address = value.address {
+        value.address = stringify(address)
+    }
+    return value
+}
+
+func editAddress(_ orig: AddressValue) -> AddressValue {
+    var value = orig
+    if let add = value.address2 {
+        if add.isEmpty { value.address2 = nil }
+    }
+    if let state = value.state {
+        if state.isEmpty { value.state = nil }
+    }
+    if let country = value.country {
+        if country.isEmpty { value.country = nil }
+    }
+    if let em = value.eMail {
+        if em.isEmpty { value.eMail = nil }
+    }
+    if let ho = value.homePhone {
+        if ho.isEmpty { value.homePhone = nil }
+    }
+    return orig
+}
+
 print("starting...")
 
 guard let url = URL(string: "file:///Users/fkuhl/Desktop/members.json") else {
@@ -160,13 +251,20 @@ do {
     let data = try Data(contentsOf: url)
     let dataSet = try jsonDecoder.decode(DataSet.self, from: data)
     NSLog("\(dataSet.members.count) mem, \(dataSet.households.count) households, \(dataSet.addresses.count) addrs")
-    let householdIndexes = try store(data: dataSet.households, inCollection: .households)
+    let (householdIndexes, editedHouseholds) = try store(data: dataSet.households,
+                                     inCollection: .households,
+                                     editor: editHousehold)
     NSLog("\(householdIndexes.count) households stored")
-    let memberIndexes = try store(data: dataSet.members, inCollection: .members)
+    let (memberIndexes, editedMembers) = try store(data: dataSet.members,
+                                  inCollection: .members,
+                                  editor: editMember)
     NSLog("\(memberIndexes.count) members stored")
-    let addressIndexes = try store(data: dataSet.addresses, inCollection: .addresses)
+    let (addressIndexes, editedAddresses) = try store(data: dataSet.addresses,
+                                   inCollection: .addresses,
+                                   editor: editAddress)
     NSLog("\(addressIndexes.count) addresses stored")
-    let globals = Globals(dataSet: dataSet,
+    let newDataSet = DataSet(members: editedMembers, households: editedHouseholds, addresses: editedAddresses)
+    let globals = Globals(dataSet: newDataSet,
                           memberIndexes: memberIndexes,
                           householdIndexes: householdIndexes,
                           addressIndexes: addressIndexes)
