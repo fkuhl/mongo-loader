@@ -25,12 +25,18 @@ func store<D: DataType>(data:[D],
         //drop will toss you a "ns not found" error if the collection doesn't exist. Drive on.
         NSLog("drop failed on collection \(collectionName), err: \(error)")
     }
+    var seq = 0
     try data.forEach {
         let edited = editor($0.value)
         if let mongoId = try proxy.add(dataValue: edited) {
-            mongoIndexByInputIndex[$0.id] = mongoId
-            editedData.append(D(id: $0.id, value: edited))
+            let stringified = stringify($0.id)
+            mongoIndexByInputIndex[stringified] = mongoId
+            editedData.append(D(id: stringified, value: edited))
+            if seq % 50 == 0 {
+                NSLog("coll \(collectionName), id \($0.id) stored as \(mongoId)")
+            }
         }
+        seq = seq + 1
     }
     return (mongoIndexByInputIndex, editedData)
 }
@@ -182,8 +188,8 @@ func updateMembers(globals: Globals) throws {
 
 func updateHouseholds(globals: Globals) throws {
     let proxy = MongoProxy(collectionName: .households)
+    var seq = 0
     try globals.dataSet.households.forEach {
-        var seq = 0
         guard let mongoIndex = globals.householdIndexes[$0.id] else {
             NSLog("can't find old household index \($0.id) to update")
             exit(1)
@@ -200,11 +206,11 @@ func updateHouseholds(globals: Globals) throws {
         if let address = value.address, let addressMongoIndex = globals.addressIndexes[address] {
             value.address = addressMongoIndex
         }
-        value.others = value.others.map {
-            globals.memberIndexes[$0] ?? ""
+        value.others = value.others.compactMap {
+            return globals.memberIndexes[$0]
         }
         if try proxy.replace(id: mongoIndex, newValue: value) {
-            NSLog("updated household \(mongoIndex)")
+            NSLog("updated household, old ID \($0.id), new \(mongoIndex)")
             if seq % 10 == 0 {
                 let valRep = try jsonEncoder.encode(value)
                 print(String(data: valRep, encoding: .utf8)!)
@@ -262,14 +268,14 @@ do {
     let data = try Data(contentsOf: url)
     let dataSet = try jsonDecoder.decode(DataSet.self, from: data)
     NSLog("\(dataSet.members.count) mem, \(dataSet.households.count) households, \(dataSet.addresses.count) addrs")
-    let (householdIndexes, editedHouseholds) = try store(data: dataSet.households,
-                                     inCollection: .households,
-                                     editor: editHousehold)
-    NSLog("\(householdIndexes.count) households stored")
     let (memberIndexes, editedMembers) = try store(data: dataSet.members,
                                   inCollection: .members,
                                   editor: editMember)
     NSLog("\(memberIndexes.count) members stored")
+    let (householdIndexes, editedHouseholds) = try store(data: dataSet.households,
+                                     inCollection: .households,
+                                     editor: editHousehold)
+    NSLog("\(householdIndexes.count) households stored")
     let (addressIndexes, editedAddresses) = try store(data: dataSet.addresses,
                                    inCollection: .addresses,
                                    editor: editAddress)
