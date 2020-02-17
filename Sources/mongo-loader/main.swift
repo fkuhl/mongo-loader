@@ -260,7 +260,7 @@ func editAddress(_ orig: AddressValue) -> AddressValue {
 
 print("starting...")
 
-guard let url = URL(string: "file:///Users/fkuhl/Desktop/members.json") else {
+guard let url = URL(string: "file:///data/members.json") else {
     NSLog("URL failed")
     exit(1)
 }
