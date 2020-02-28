@@ -9,7 +9,7 @@ import Foundation
 import PMDataTypes
 
 struct DataSet: Encodable, Decodable {
-    let members: [Member]
-    let households: [Household]
-    let addresses: [Address]
+    let members: [MemberImported]
+    let households: [HouseholdImported]
+    let addresses: [AddressImported]
 }

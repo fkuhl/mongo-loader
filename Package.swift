@@ -7,14 +7,15 @@ let package = Package(
     name: "mongo-loader",
     dependencies: [
         .package(url: "https://github.com/mongodb/mongo-swift-driver.git", from: "0.2.0"),
-        .package(url: "file:///Users/fkuhl/Documents/workspace/pm-http/pm-data-types/PMDataTypes", from: "2.0.0"),
+        .package(url: "https://github.com/fkuhl/PMDataTypes", from: "3.0.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "mongo-loader",
-            dependencies: ["MongoSwift", "PMDataTypes"]),
+            dependencies: ["MongoSwift", "PMDataTypes", "Logging"]),
         .testTarget(
             name: "mongo-loaderTests",
             dependencies: ["mongo-loader"]),

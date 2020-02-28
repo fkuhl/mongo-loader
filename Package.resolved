@@ -21,11 +21,11 @@
       },
       {
         "package": "PMDataTypes",
-        "repositoryURL": "file:///Users/fkuhl/Documents/workspace/pm-http/pm-data-types/PMDataTypes",
+        "repositoryURL": "https://github.com/fkuhl/PMDataTypes",
         "state": {
           "branch": null,
-          "revision": "21080e76ea0ea59fcdafd30e99c0b16c8b8dab0c",
-          "version": "2.0.4"
+          "revision": "d6760e9cc5709a0d2845dc57648beb59d5a3b85a",
+          "version": "3.0.2"
         }
       },
       {
@@ -35,6 +35,15 @@
           "branch": null,
           "revision": "40f770ed265bb9958edbcd0c809a3c2afe75a3ba",
           "version": "2.1.0"
+        }
+      },
+      {
+        "package": "swift-log",
+        "repositoryURL": "https://github.com/apple/swift-log.git",
+        "state": {
+          "branch": null,
+          "revision": "74d7b91ceebc85daf387ebb206003f78813f71aa",
+          "version": "1.2.0"
         }
       },
       {
