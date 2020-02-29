@@ -35,7 +35,7 @@ class MongoProxy {
         collection = db.collection(collectionName.rawValue)
     }
 
-    func add<V: ValueType>(dataValue: V) throws -> Id? {
+    func add(dataValue: HouseholdDocumentValue) throws -> Id? {
         //NSLog("about to encode doc")
         do {
             let document = try Document(fromJSON: dataValue.asJSONData())
@@ -58,7 +58,7 @@ class MongoProxy {
         }
     }
 
-    func replace<V: ValueType>(id: Id, newValue: V) throws -> Bool {
+    func replace(id: Id, newValue: HouseholdDocumentValue) throws -> Bool {
         guard let idValue = ObjectId(id) else {
             throw MongoProxyError.invalidId(id)
         }

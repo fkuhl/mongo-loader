@@ -13,21 +13,23 @@ import PMDataTypes
  As you can see, this structure contains nothing but MongoDB ids.
  Single persons each have their own household.
  */
-public struct HouseholdImported: DataType {
+public struct HouseholdImported: Codable {
     public var id: Id
     public var value: HouseholdImportedValue
     
-    public init(id: Id, value: ValueType) {
+    public init(id: Id, value: HouseholdImportedValue) {
         self.id = id
-        self.value = value as! HouseholdImportedValue
+        self.value = value
     }
 }
 
-public struct HouseholdImportedValue: ValueType {
-    public var head: Id //data cleaned up enough so this isn't ever nil
-    public var spouse: Id?
+public struct HouseholdImportedValue: Codable {
+    public var head: Id = "" //data cleaned up enough so this isn't ever nil
+    public var spouse: Id? = nil
     public var others: [Id] = []
-    public var address: Id? //nil if address unknown
+    public var address: Id? = nil //nil if address unknown
+    
+    public init() { }
     
     /** just for mocking */
 //    public init(head: Id, spouse: Id?, others: [Id], address: Id) {

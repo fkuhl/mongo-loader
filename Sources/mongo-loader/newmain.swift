@@ -13,33 +13,33 @@ func stringify(_ id: String) -> String {
     return "ID" + id
 }
 
-func store<D: DataType>(data:[D],
-                        inCollection collectionName: CollectionName,
-                        editor: (D.V) -> (D.V)) throws -> ([Id: Id], [D]) {
-    var mongoIndexByInputIndex = [Id: Id]()
-    var editedData = [D]()
-    let proxy = MongoProxy(collectionName: collectionName)
-    do {
-        try proxy.drop()
-    } catch {
-        //drop will toss you a "ns not found" error if the collection doesn't exist. Drive on.
-        NSLog("drop failed on collection \(collectionName), err: \(error)")
-    }
-    var seq = 0
-    try data.forEach {
-        let edited = editor($0.value)
-        if let mongoId = try proxy.add(dataValue: edited) {
-            let stringified = stringify($0.id)
-            mongoIndexByInputIndex[stringified] = mongoId
-            editedData.append(D(id: stringified, value: edited))
-            if seq % 50 == 0 {
-                NSLog("coll \(collectionName), id \($0.id) stored as \(mongoId)")
-            }
-        }
-        seq = seq + 1
-    }
-    return (mongoIndexByInputIndex, editedData)
-}
+//func store<D: DataType>(data:[D],
+//                        inCollection collectionName: CollectionName,
+//                        editor: (D.V) -> (D.V)) throws -> ([Id: Id], [D]) {
+//    var mongoIndexByInputIndex = [Id: Id]()
+//    var editedData = [D]()
+//    let proxy = MongoProxy(collectionName: collectionName)
+//    do {
+//        try proxy.drop()
+//    } catch {
+//        //drop will toss you a "ns not found" error if the collection doesn't exist. Drive on.
+//        NSLog("drop failed on collection \(collectionName), err: \(error)")
+//    }
+//    var seq = 0
+//    try data.forEach {
+//        let edited = editor($0.value)
+//        if let mongoId = try proxy.add(dataValue: edited) {
+//            let stringified = stringify($0.id)
+//            mongoIndexByInputIndex[stringified] = mongoId
+//            editedData.append(D(id: stringified, value: edited))
+//            if seq % 50 == 0 {
+//                NSLog("coll \(collectionName), id \($0.id) stored as \(mongoId)")
+//            }
+//        }
+//        seq = seq + 1
+//    }
+//    return (mongoIndexByInputIndex, editedData)
+//}
 
 //func editMember(_ orig: MemberValue) -> MemberValue {
 //    var value = orig
@@ -132,47 +132,47 @@ func editService(_ orig: Service) -> Service {
     return value
 }
 
-func updateMembers(globals: Globals) throws {
-    let proxy = MongoProxy(collectionName: .members)
-    var seq = 0
-    try globals.dataSet.members.forEach {
-        guard let mongoIndex = globals.memberIndexes[$0.id] else {
-            NSLog("can't find old member index \($0.id) to update")
-            exit(1)
-        }
-        var value = $0.value
-        if let householdIndex = value.household {
-            if let householdMongoIndex = globals.householdIndexes[householdIndex] {
-                value.household = householdMongoIndex
-            }
-        } else {
-            NSLog("Nil household for \(value.familyName), \(value.givenName)")
-        }
-        if let tempAddress = value.tempAddress {
-            if let tempAddressMongoIndex = globals.addressIndexes[tempAddress] {
-                value.tempAddress = tempAddressMongoIndex
-            }
-        }
-        if let father = value.father {
-            if let fatherMongoIndex = globals.memberIndexes[father] {
-                value.father = fatherMongoIndex
-            }
-        }
-        if let mother = value.mother {
-            if let motherMongoIndex = globals.memberIndexes[mother] {
-                value.mother = motherMongoIndex
-            }
-        }
-        value.transactions = value.transactions.map {
-            var transaction = $0
-            transaction.index = mongoIndex //the (somewhat redundant) index is the member this belongs to
-            return transaction
-        }
-        value.services = value.services.map {
-            var service = $0
-            service.index = mongoIndex //redundant ditto
-            return service
-        }
+//func updateMembers(globals: Globals) throws {
+//    let proxy = MongoProxy(collectionName: .members)
+//    var seq = 0
+//    try globals.dataSet.members.forEach {
+//        guard let mongoIndex = globals.memberIndexes[$0.id] else {
+//            NSLog("can't find old member index \($0.id) to update")
+//            exit(1)
+//        }
+//        var value = $0.value
+//        if let householdIndex = value.household {
+//            if let householdMongoIndex = globals.householdIndexes[householdIndex] {
+//                value.household = householdMongoIndex
+//            }
+//        } else {
+//            NSLog("Nil household for \(value.familyName), \(value.givenName)")
+//        }
+//        if let tempAddress = value.tempAddress {
+//            if let tempAddressMongoIndex = globals.addressIndexes[tempAddress] {
+//                value.tempAddress = tempAddressMongoIndex
+//            }
+//        }
+//        if let father = value.father {
+//            if let fatherMongoIndex = globals.memberIndexes[father] {
+//                value.father = fatherMongoIndex
+//            }
+//        }
+//        if let mother = value.mother {
+//            if let motherMongoIndex = globals.memberIndexes[mother] {
+//                value.mother = motherMongoIndex
+//            }
+//        }
+//        value.transactions = value.transactions.map {
+//            var transaction = $0
+//            transaction.index = mongoIndex //the (somewhat redundant) index is the member this belongs to
+//            return transaction
+//        }
+//        value.services = value.services.map {
+//            var service = $0
+//            service.index = mongoIndex //redundant ditto
+//            return service
+//        }
 //        if try proxy.replace(id: mongoIndex, newValue: value) {
 //            NSLog("updated member, old ID \($0.id), new ID \(mongoIndex)")
 //            if seq % 50 == 0 {
@@ -183,44 +183,44 @@ func updateMembers(globals: Globals) throws {
 //        } else {
 //            NSLog("replacing new index \(mongoIndex) failed")
 //        }
-    }
-}
+//    }
+//}
 
-func updateHouseholds(globals: Globals) throws {
-    let proxy = MongoProxy(collectionName: .households)
-    var seq = 0
-    try globals.dataSet.households.forEach {
-        guard let mongoIndex = globals.householdIndexes[$0.id] else {
-            NSLog("can't find old household index \($0.id) to update")
-            exit(1)
-        }
-        var value = $0.value
-        if let headMongoIndex = globals.memberIndexes[value.head] {
-            value.head = headMongoIndex
-        }
-        if let spouse = value.spouse {
-            if let spouseMongoIndex = globals.memberIndexes[spouse] {
-                value.spouse = spouseMongoIndex
-            }
-        }
-        if let address = value.address, let addressMongoIndex = globals.addressIndexes[address] {
-            value.address = addressMongoIndex
-        }
-        value.others = value.others.compactMap {
-            return globals.memberIndexes[$0]
-        }
-        if try proxy.replace(id: mongoIndex, newValue: value) {
-            NSLog("updated household, old ID \($0.id), new \(mongoIndex)")
-            if seq % 10 == 0 {
-                let valRep = try jsonEncoder.encode(value)
-                print(String(data: valRep, encoding: .utf8)!)
-            }
-            seq += 1
-        } else {
-            NSLog("replacing new index \(mongoIndex) failed")
-        }
-    }
-}
+//func updateHouseholds(globals: Globals) throws {
+//    let proxy = MongoProxy(collectionName: .households)
+//    var seq = 0
+//    try globals.dataSet.households.forEach {
+//        guard let mongoIndex = globals.householdIndexes[$0.id] else {
+//            NSLog("can't find old household index \($0.id) to update")
+//            exit(1)
+//        }
+//        var value = $0.value
+//        if let headMongoIndex = globals.memberIndexes[value.head] {
+//            value.head = headMongoIndex
+//        }
+//        if let spouse = value.spouse {
+//            if let spouseMongoIndex = globals.memberIndexes[spouse] {
+//                value.spouse = spouseMongoIndex
+//            }
+//        }
+//        if let address = value.address, let addressMongoIndex = globals.addressIndexes[address] {
+//            value.address = addressMongoIndex
+//        }
+//        value.others = value.others.compactMap {
+//            return globals.memberIndexes[$0]
+//        }
+//        if try proxy.replace(id: mongoIndex, newValue: value) {
+//            NSLog("updated household, old ID \($0.id), new \(mongoIndex)")
+//            if seq % 10 == 0 {
+//                let valRep = try jsonEncoder.encode(value)
+//                print(String(data: valRep, encoding: .utf8)!)
+//            }
+//            seq += 1
+//        } else {
+//            NSLog("replacing new index \(mongoIndex) failed")
+//        }
+//    }
+//}
 
 //func editHousehold(_ orig: HouseholdValue) -> HouseholdValue {
 //    var value = orig

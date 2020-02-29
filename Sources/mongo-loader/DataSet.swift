@@ -8,7 +8,7 @@
 import Foundation
 import PMDataTypes
 
-struct DataSet: Encodable, Decodable {
+struct DataSet: Codable {
     let members: [MemberImported]
     let households: [HouseholdImported]
     let addresses: [AddressImported]
