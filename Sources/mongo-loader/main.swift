@@ -21,11 +21,6 @@ if let logLevelEnv = ProcessInfo.processInfo.environment["PM_LOG_LEVEL"],
     logger.info("Log level set from environment: \(logLevel)")
 }
 
-//var addressesByImportedIndex = [Id : Address]()
-//var membersByImportedIndex = [Id : Member]()
-//var householdsByImportedIndex = [Id : HouseholdDocument]()
-//var mongoIndexByImportedIndex = [Id : Id]()
-
 struct BadData: Error {
     var message: String
 }
@@ -122,7 +117,7 @@ func indexMembers(_ members: [MemberImported],
  Create collection of HouseholdDocument structs indexed by household's imported index. HouseholdDocuments are ready to be added to Mongo.
  
  - Precondition: Members have been indexed, i.e., indexMembers has been executed.
- - Postcondition: HouseholdDocument structures created, with Members and Addresse embedded. Members have imported Household indexes, not in Mongo yet.
+ - Postcondition: HouseholdDocument structures created, with Members and Addresses embedded. Members have imported Household indexes, not in Mongo yet.
  */
 func indexHouseholds(_ households: [HouseholdImported],
                      addressesByImportedIndex: [Id:Address],
@@ -171,7 +166,7 @@ func indexHouseholds(_ households: [HouseholdImported],
 }
 
 /**
- Store prelimiary version of HouseholdDocuments in Mongo, creating an index
+ Store preliminary version of HouseholdDocuments in Mongo, creating an index
  from imported household index to MongDB index.
  Also create new set of HouseholdDocuments with mongo index stored in them.
  */
@@ -273,6 +268,7 @@ do {
         }
         j += 1
     }
+    logger.info("And we're done.")
 } catch {
     logger.error("\(error)")
 }
