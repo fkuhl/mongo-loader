@@ -9,9 +9,9 @@ struct Globals {
 }
 
 /** Force ID to be seen as string, despite being numeric. */
-func stringify(_ id: String) -> String {
-    return "ID" + id
-}
+//func stringify(_ id: String) -> String {
+//    return "ID" + id
+//}
 
 //func store<D: DataType>(data:[D],
 //                        inCollection collectionName: CollectionName,
@@ -105,32 +105,32 @@ func stringify(_ id: String) -> String {
 //    return value
 //}
 
-func editTransaction(_ orig: Transaction) -> Transaction {
-    var value = orig
-    value.index = stringify(value.index)
-    if let authority = value.authority {
-        if authority.isEmpty { value.authority = nil }
-    }
-    if let church = value.church {
-        if church.isEmpty { value.church = nil }
-    }
-    if let comment = value.comment {
-        if comment.isEmpty { value.comment = nil }
-    }
-    return value
-}
-
-func editService(_ orig: Service) -> Service {
-    var value = orig
-    value.index = stringify(value.index)
-    if let place = value.place {
-        if place.isEmpty { value.place = nil }
-    }
-    if let comment = value.comment {
-        if comment.isEmpty { value.comment = nil }
-    }
-    return value
-}
+//func editTransaction(_ orig: Transaction) -> Transaction {
+//    var value = orig
+//    value.index = stringify(value.index)
+//    if let authority = value.authority {
+//        if authority.isEmpty { value.authority = nil }
+//    }
+//    if let church = value.church {
+//        if church.isEmpty { value.church = nil }
+//    }
+//    if let comment = value.comment {
+//        if comment.isEmpty { value.comment = nil }
+//    }
+//    return value
+//}
+//
+//func editService(_ orig: Service) -> Service {
+//    var value = orig
+//    value.index = stringify(value.index)
+//    if let place = value.place {
+//        if place.isEmpty { value.place = nil }
+//    }
+//    if let comment = value.comment {
+//        if comment.isEmpty { value.comment = nil }
+//    }
+//    return value
+//}
 
 //func updateMembers(globals: Globals) throws {
 //    let proxy = MongoProxy(collectionName: .members)

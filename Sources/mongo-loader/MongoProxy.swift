@@ -35,21 +35,25 @@ class MongoProxy {
         collection = db.collection(collectionName.rawValue)
     }
 
-    func add(dataValue: HouseholdDocumentValue) throws -> Id? {
-        //NSLog("about to encode doc")
+    func add(dataValue: HouseholdDocument) throws -> Id? {
+        //logger.debug("about to encode doc")
         do {
             let document = try Document(fromJSON: dataValue.asJSONData())
-            //NSLog("about to insert")
+            //logger.debug("about to insert")
             if let result = try collection.insertOne(document) {
                 let idAsBson = result.insertedId
                 guard idAsBson.type == BSONType.objectId else {
                     throw MongoProxyError.invalidId("returned id of unexpected type \(idAsBson.type)")
                 }
-                let idAsObjectId = idAsBson.objectIdValue
-                //NSLog("insert returned id \(idAsObjectId?.hex ?? "nada") of type \(idAsBson.type)")
-                return idAsObjectId?.hex
+                guard let idAsObjectId = idAsBson.objectIdValue else {
+                    logger.error("couldn't convert id")
+                    return nil
+                }
+                let idString = idAsObjectId.hex
+                //logger.debug("insert returned id \(idString) of type \(idAsBson.type)")
+                return idString
             }
-            NSLog("add returned nil")
+            //logger.debug("add returned nil")
             return nil
         } catch let error as UserError {
             throw MongoProxyError.jsonEncodingError(error)
@@ -58,7 +62,7 @@ class MongoProxy {
         }
     }
 
-    func replace(id: Id, newValue: HouseholdDocumentValue) throws -> Bool {
+    func replace(id: Id, newValue: HouseholdDocument) throws -> Bool {
         guard let idValue = ObjectId(id) else {
             throw MongoProxyError.invalidId(id)
         }

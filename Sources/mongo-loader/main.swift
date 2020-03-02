@@ -122,26 +122,26 @@ func indexMembers(_ members: [MemberImported],
  Create collection of HouseholdDocument structs indexed by household's imported index. HouseholdDocuments are ready to be added to Mongo.
  
  - Precondition: Members have been indexed, i.e., indexMembers has been executed.
- - Postcondition: HouseholdDocument structures created, with Members and Addresse embedded. Members have imported Household indexes, not Mongo yet.
+ - Postcondition: HouseholdDocument structures created, with Members and Addresse embedded. Members have imported Household indexes, not in Mongo yet.
  */
 func indexHouseholds(_ households: [HouseholdImported],
                      addressesByImportedIndex: [Id:Address],
-                     membersByImportedIndex: [Id:Member]) throws -> [Id : HouseholdDocument] {
+                     membersByImportedIndex: [Id:Member]) throws -> [HouseholdDocument] {
     var i = 0
-    var index = [Id : HouseholdDocument]()
-    for hi in households {
-        var hv = HouseholdDocumentValue()
+    let householdDocs: [HouseholdDocument] = try households.map { hi in
+        var hd = HouseholdDocument()
+        hd.id = hi.id
         guard let head = membersByImportedIndex[hi.value.head] else {
             throw BadData(message: "no Member imported for head \(hi.value.head) of household \(hi.id)")
         }
-        hv.head = head
+        hd.head = head
         if let spouseIndex = hi.value.spouse {
             guard let spouse = membersByImportedIndex[spouseIndex] else {
                 throw BadData(message: "no Member imported for spouse \(spouseIndex) of household \(hi.id)")
             }
-            hv.spouse = spouse
+            hd.spouse = spouse
         } else {
-            hv.spouse = nil
+            hd.spouse = nil
         }
         var others = [Member]()
         for oi in hi.value.others { //any nils in import are ignored!
@@ -152,29 +152,30 @@ func indexHouseholds(_ households: [HouseholdImported],
                 logger.error("no Member imported for other \(oi) of household \(hi.id)")
             }
         }
-        hv.others = others
+        hd.others = others
         if let ai = hi.value.address {
             guard let address = addressesByImportedIndex[ai] else {
                 throw BadData(message: "no Address imported for address \(ai) of household \(hi.id)")
             }
-            hv.address = address
+            hd.address = address
         } else {
-            hv.address = nil
+            hd.address = nil
         }
-        index[hi.id] = HouseholdDocument(id: hi.id, value: hv)
         if i % 10 == 0 {
-            logger.info("household \(hv.head.fullName())")
+            logger.info("household \(hd.head.fullName())")
         }
         i += 1
+        return hd
     }
-    return index
+    return householdDocs
 }
 
 /**
  Store prelimiary version of HouseholdDocuments in Mongo, creating an index
  from imported household index to MongDB index.
+ Also create new set of HouseholdDocuments with mongo index stored in them.
  */
-func store(data: [HouseholdDocument]) throws -> [Id: Id] {
+func store(data: [HouseholdDocument]) throws -> ([Id: Id], [HouseholdDocument]) {
     var mongoIndexByInputIndex = [Id: Id]()
     let proxy = MongoProxy(collectionName: CollectionName.households)
     do {
@@ -184,26 +185,63 @@ func store(data: [HouseholdDocument]) throws -> [Id: Id] {
         logger.error("drop failed on \(CollectionName.households), err: \(error)")
     }
     var seq = 0
-    try data.forEach {
-        if let mongoId = try proxy.add(dataValue: $0.value) {
-            let stringified = stringify($0.id)
-            mongoIndexByInputIndex[stringified] = mongoId
+    let docsWithIndex: [HouseholdDocument] = try data.map {
+        var indexedDoc = $0
+        let importedIndex = $0.id
+        if let mongoId = try proxy.add(dataValue: $0) {
+            mongoIndexByInputIndex[importedIndex] = mongoId
+            indexedDoc.id = mongoId
             if seq % 50 == 0 {
-                logger.info("Household id \($0.id) stored as \(mongoId)")
+                logger.info("Household id '\(importedIndex)' stored as \(mongoId)")
             }
         }
         seq = seq + 1
+        return indexedDoc
     }
-    return mongoIndexByInputIndex
+    return (mongoIndexByInputIndex, docsWithIndex)
 }
 
 /**
  Fixup HouseholdDocuments: In each Member, replace the imported Household index with the Mongo-assigned.
  - Precondition: mongoIndexByImportedIndex is populated.
- - Postcondition: HouseholdDocuments are in final form for storage.
+ - Postcondition: HouseholdDocuments are stored in final form.
  */
-func fixup() throws {
-    
+func fixupAndUpdate(data: [HouseholdDocument], mongoIndexByImportedIndex: [Id: Id]) throws -> [HouseholdDocument] {
+    let proxy = MongoProxy(collectionName: CollectionName.households)
+    let updatedSet: [HouseholdDocument] = try data.map { hd in
+        //For each member, head, spouse others, update the household id now that we know it
+        var updated = hd
+        if let household = hd.head.household {
+            guard let headMongo = mongoIndexByImportedIndex[household] else {
+                throw BadData(message: "head of \(hd.head.fullName()) has no Mongo household index corresp to \(household)")
+            }
+            updated.head.household = headMongo
+        }
+        if let spouse = hd.spouse, let spouseHousehold = spouse.household {
+            guard let spouseMongo = mongoIndexByImportedIndex[spouseHousehold] else {
+                throw BadData(message: "spouse of \(spouse.fullName()) has no Mongo household index corresp to \(spouseHousehold)")
+            }
+            updated.spouse?.household = spouseMongo
+        }
+        let updatedOthers: [Member] = try hd.others.map { other in
+            var updatedOther = other
+            if let household = other.household {
+                guard let otherMongo = mongoIndexByImportedIndex[household] else {
+                    throw BadData(message: "other \(other.fullName()) has no Mongo household index corresp to \(household)")
+                }
+                updatedOther.household = otherMongo
+            }
+            return updatedOther
+        }
+        updated.others = updatedOthers
+        //update in mongo
+        let succeeded = try proxy.replace(id: updated.id, newValue: updated)
+        if !succeeded {
+            logger.error("update failed of household \(updated.head.fullName()), id: \(updated.id)")
+        }
+        return updated
+    }
+    return updatedSet
 }
 
 logger.info("starting...")
@@ -219,12 +257,22 @@ do {
     let addressesByImportedIndex = indexAddresses(dataSet.addresses)
     let membersByImportedIndex = indexMembers(dataSet.members,
                                               addressesByImportedIndex: addressesByImportedIndex)
-    let householdsByImportedIndex = try indexHouseholds(dataSet.households,
+    let householdDocsReadyToStore = try indexHouseholds(dataSet.households,
                                                         addressesByImportedIndex: addressesByImportedIndex,
                                                         membersByImportedIndex: membersByImportedIndex)
-    let householdsToStore = [HouseholdDocument](householdsByImportedIndex.values)
-    let mongoIndexByImportedIndex = try store(data: householdsToStore)
-    try fixup()
+    let (mongoIndexByImportedIndex, storedDocs) = try store(data: householdDocsReadyToStore)
+//    for (importedIndex, storedIndex) in mongoIndexByImportedIndex {
+//        logger.info("imported: '\(importedIndex)' stored: '\(storedIndex)'")
+//    }
+    let updatedSet = try fixupAndUpdate(data: storedDocs,
+              mongoIndexByImportedIndex: mongoIndexByImportedIndex)
+    var j = 0
+    updatedSet.forEach { hd in
+        if j % 10 == 0 {
+            logger.info("id \(hd.id) is \(hd.head.fullName())")
+        }
+        j += 1
+    }
 } catch {
     logger.error("\(error)")
 }
