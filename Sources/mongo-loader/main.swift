@@ -21,6 +21,27 @@ if let logLevelEnv = ProcessInfo.processInfo.environment["PM_LOG_LEVEL"],
     logger.info("Log level set from environment: \(logLevel)")
 }
 
+/**
+ DEAD members must still belong to a household, to be included in the denormalized data.
+ As DEAD members are imported they are added to mansionInTheSky.
+ And of course each household must have a head.
+ */
+let mansionInTheSkyTempId = UUID().uuidString
+var goodShepherd = Member()
+goodShepherd.id = UUID().uuidString
+goodShepherd.familyName = "Shepherd"
+goodShepherd.givenName = "Good"
+goodShepherd.placeOfBirth = "Bethlehem"
+goodShepherd.status = .PASTOR //not counted against communicants
+goodShepherd.resident = false //not couned against residents
+goodShepherd.exDirectory = true //not included in directory
+goodShepherd.household = mansionInTheSkyTempId
+
+var mansionInTheSky = HouseholdDocument()
+mansionInTheSky.head = goodShepherd
+mansionInTheSky.id = mansionInTheSkyTempId
+
+
 struct BadData: Error {
     var message: String
 }
@@ -76,7 +97,7 @@ func indexMembers(_ members: [MemberImported],
         e.status = v.status
         e.resident = v.resident
         e.exDirectory = v.exDirectory
-        e.household = v.household
+        e.household = v.household == nil ? mansionInTheSkyTempId : v.household!
         if let taIndex = v.tempAddress {
             if let ta = addressesByImportedIndex[taIndex] {
                 e.tempAddress = ta
@@ -117,13 +138,13 @@ func indexMembers(_ members: [MemberImported],
  Create collection of HouseholdDocument structs indexed by household's imported index. HouseholdDocuments are ready to be added to Mongo.
  
  - Precondition: Members have been indexed, i.e., indexMembers has been executed.
- - Postcondition: HouseholdDocument structures created, with Members and Addresses embedded. Members have imported Household indexes, not in Mongo yet.
+ - Postcondition: HouseholdDocument structures created, with Members and Addresses embedded. Members have imported Household indexes, not in Mongo yet. mansionInTheSky has been appended to array of HouseholdDocuments.
  */
 func indexHouseholds(_ households: [HouseholdImported],
                      addressesByImportedIndex: [Id:Address],
                      membersByImportedIndex: [Id:Member]) throws -> [HouseholdDocument] {
     var i = 0
-    let householdDocs: [HouseholdDocument] = try households.map { hi in
+    var householdDocs: [HouseholdDocument] = try households.map { hi in
         var hd = HouseholdDocument()
         hd.id = hi.id
         guard let head = membersByImportedIndex[hi.value.head] else {
@@ -162,6 +183,13 @@ func indexHouseholds(_ households: [HouseholdImported],
         i += 1
         return hd
     }
+    for member in membersByImportedIndex.values {
+        if member.household == mansionInTheSkyTempId {
+            mansionInTheSky.others.append(member)
+            logger.debug("placing \(member.fullName()) in mansionInTheSky")
+        }
+    }
+    householdDocs.append(mansionInTheSky)
     return householdDocs
 }
 
@@ -175,6 +203,7 @@ func store(data: [HouseholdDocument]) throws -> ([Id: Id], [HouseholdDocument]) 
     let proxy = MongoProxy(collectionName: CollectionName.households)
     do {
         try proxy.drop()
+        logger.info("dropped collection \(CollectionName.households)")
     } catch {
         //drop will toss you a "ns not found" error if the collection doesn't exist. Drive on.
         logger.error("drop failed on \(CollectionName.households), err: \(error)")
@@ -186,9 +215,9 @@ func store(data: [HouseholdDocument]) throws -> ([Id: Id], [HouseholdDocument]) 
         if let mongoId = try proxy.add(dataValue: $0) {
             mongoIndexByInputIndex[importedIndex] = mongoId
             indexedDoc.id = mongoId
-            if seq % 50 == 0 {
+            //if seq % 50 == 0 {
                 logger.info("Household id '\(importedIndex)' stored as \(mongoId)")
-            }
+            //}
         }
         seq = seq + 1
         return indexedDoc
@@ -206,26 +235,22 @@ func fixupAndUpdate(data: [HouseholdDocument], mongoIndexByImportedIndex: [Id: I
     let updatedSet: [HouseholdDocument] = try data.map { hd in
         //For each member, head, spouse others, update the household id now that we know it
         var updated = hd
-        if let household = hd.head.household {
-            guard let headMongo = mongoIndexByImportedIndex[household] else {
-                throw BadData(message: "head of \(hd.head.fullName()) has no Mongo household index corresp to \(household)")
-            }
-            updated.head.household = headMongo
+        guard let headMongo = mongoIndexByImportedIndex[hd.head.household] else {
+            throw BadData(message: "head of \(hd.head.fullName()) has no Mongo household index corresp to '\(hd.head.household)'")
         }
-        if let spouse = hd.spouse, let spouseHousehold = spouse.household {
-            guard let spouseMongo = mongoIndexByImportedIndex[spouseHousehold] else {
-                throw BadData(message: "spouse of \(spouse.fullName()) has no Mongo household index corresp to \(spouseHousehold)")
+        updated.head.household = headMongo
+        if let spouse = hd.spouse {
+            guard let spouseMongo = mongoIndexByImportedIndex[spouse.household] else {
+                throw BadData(message: "spouse of \(spouse.fullName()) has no Mongo household index corresp to \(spouse.household)")
             }
             updated.spouse?.household = spouseMongo
         }
         let updatedOthers: [Member] = try hd.others.map { other in
             var updatedOther = other
-            if let household = other.household {
-                guard let otherMongo = mongoIndexByImportedIndex[household] else {
-                    throw BadData(message: "other \(other.fullName()) has no Mongo household index corresp to \(household)")
-                }
-                updatedOther.household = otherMongo
+            guard let otherMongo = mongoIndexByImportedIndex[other.household] else {
+                throw BadData(message: "other \(other.fullName()) has no Mongo household index corresp to \(other.household)")
             }
+            updatedOther.household = otherMongo
             return updatedOther
         }
         updated.others = updatedOthers
